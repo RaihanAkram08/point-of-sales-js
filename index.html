@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./index.css" />
+    <link rel="icon" href="./assets/Icon.png" type="image/x-icon">
+
+    <title>Croissant Shop</title>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="gorry">
+        <header>
+          <div class="teks">
+            <h1>Welcome, Gorry</h1>
+            <p>Discover Whatever You Need Easily</p>
+          </div>
+
+          <div class="search">
+            <div class="wrap-input">
+              <i class="ri-search-line"></i>
+              <input type="search" placeholder="Search Product ..." />
+            </div>
+
+            <button type="submit"><i class="ri-filter-line"></i></button>
+          </div>
+        </header>
+
+        <div class="wrap-type">
+          <a href=""><i class="ri-sparkling-2-line"></i> Signature</a>
+          <a href=""><i class="ri-cake-2-line"></i> Croissant</a>
+          <a href=""><i class="ri-cake-3-line"></i> Waffle</a>
+          <a href=""><i class="ri-drinks-line"></i> Coffee</a>
+          <a href=""><i class="ri-bread-line"></i> Ice Cream</a>
+        </div>
+
+        <div class="wrap-card" id="wrap-card"></div>
+      </div>
+
+      <div class="order">
+        <div class="teks">
+          <h2>Current Order</h2>
+          <button type="submit"><i class="ri-settings-3-line"></i></button>
+        </div>
+
+        <div class="wrap-card-order" id="wrap-card-order">
+          
+        </div>
+
+        <div class="wrap-total">
+          <div class="total-satu">
+            <p>Subtotal <span id="subtotal">$37.61</span></p>
+            <p>Discount Sales <span id="discount"> -$5.00</span></p>
+            <p>Total sales tax <span id="total-sementara">$2.25</span></p>
+          </div>
+          <hr />
+          <p>Total <span id="total"></span></p>
+        </div>
+
+        <button>Continue To Payment</button>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const url = "./data.json";
+        const wrapCard = document.getElementById("wrap-card");
+
+        fetch(url)
+          .then((response) => response.json())
+          .then((data) => {
+            const products = data.products;
+            saveProductsToLocalStorage(products);
+            wrapCard.innerHTML = getProduct(products);
+          });
+
+        const getProduct = (products) => {
+          return products
+            .map(
+              (product) =>
+                `<div class="card" key="${product.id}">
+                    <div class="wrap-image">
+                        <img src="${product.image}" alt="Almond Brown Sugar Croissant">
+                        <button type="submit" onclick="addToCart(${product.id})"><i class="ri-shopping-cart-line"></i></button>
+                        <p>Buy</p>
+                    </div>
+                    <h2>${product.title}</h2>
+                    <p>${product.description}</p>
+                    <div class="wrap-price">
+                        <h2>Rp ${product.price}</h2>
+                        <p>/ 3 pcs </p>
+                    </div>
+                </div>`
+            )
+            .join("");
+          console.log(products);
+        };
+
+        const cart = getCartsFromLocalStorage();
+
+        updateOrder(cart)
+      });
+
+      function addToCart(id) {
+        const cart = getCartsFromLocalStorage();
+        const products = getProductsFromLocalStorage();
+        const productsSelected = products.find((product) => product.id == id);
+        console.log(productsSelected);
+        const findProduct = cart.find((product) => product.id == id);
+        const existingProduct = cart.some((product) => product.id == id);
+        if (existingProduct) {
+          findProduct.counter += 1
+        } else {
+          cart.push({
+          id: id,
+          title: productsSelected.title,
+          description: productsSelected.description,
+          image: productsSelected.image,
+          price: productsSelected.price,
+          counter : 1,
+        });
+        }
+        
+        saveCartsToLocalStorage(cart);
+        updateOrder(cart);
+        
+      }
+
+      function updateOrder(cart) {
+
+        const wrapCardOrder = document.getElementById("wrap-card-order");
+        wrapCardOrder.innerHTML = cart.map((product) => `
+        <div class="card-order">
+            <div class="wrap-image">
+              <img src="${product.image}" alt="" />
+            </div>
+            <div class="teks">
+              <h3>${product.title}</h3>
+              <div class="harga">
+                <h3>Rp ${product.price}</h3>
+                <div class="counter">
+                  <button type="submit" onclick="changeQuantity(${product.id}, -1)"><i class="ri-subtract-line"></i></button>
+                  <p>${product.counter}</p>
+                  <button type="submit" onclick="changeQuantity(${product.id}, 1)"><i class="ri-add-line"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>`).join("")
+
+          totalPrice(cart)
+      }
+
+      function changeQuantity(id, amount) {
+        const cart = getCartsFromLocalStorage();
+        const productSelected = cart.find((product) => product.id == id);
+        if (productSelected) {
+          productSelected.counter += amount
+          if (productSelected.counter === 0) {
+            const productIndex = cart.indexOf(productSelected);
+            cart.splice(productIndex, 1);
+          }
+        }
+        saveCartsToLocalStorage(cart);
+        updateOrder(cart);
+      }
+
+      function totalPrice(cart) {
+        const total = document.getElementById("total");
+        cart = getCartsFromLocalStorage();
+        const totalAkhir = cart.reduce((acc, product) => acc + product.price * product.counter, 0);
+        total.textContent = `Rp ${totalAkhir}`
+        console.log(totalAkhir)
+      }
+
+
+
+      function saveCartsToLocalStorage(arg) {
+        localStorage.setItem("cart", JSON.stringify(arg));
+      }
+
+      function getCartsFromLocalStorage() {
+        const cart = localStorage.getItem("cart");
+        return cart ? JSON.parse(cart) : [];
+      }
+
+      function saveProductsToLocalStorage(arg) {
+        localStorage.setItem("products", JSON.stringify(arg));
+      }
+
+      function getProductsFromLocalStorage() {
+        const products = localStorage.getItem("products");
+        return products ? JSON.parse(products) : [];
+      }
+    </script>
+  </body>
+</html>
